@@ -1,0 +1,248 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Socket.IO Adventure Game</title>
+
+    <link rel="stylesheet" href="/apps/adventuregame/static/css/base.css">
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { font: 13px Helvetica, Arial; }
+
+      div#bodytop {
+        height:100px;
+      }
+      div#bodycenter {
+        top:110px;
+        height:600px;
+        padding:0px auto;
+      }
+      div#bodyfooter {
+        top:720px;
+      }
+
+      div.chardatapanel {
+        border:1px solid #000000;
+        width:300px;
+        height:100%;
+        text-align: center;
+      }
+
+      div.chardatapanel div.namechar {
+        margin-top:15px;
+      }
+      div.chardatapanel div.namechar input {
+        padding:5px;
+        margin:15px auto;
+        font-size:16pt;
+        height:30px;
+      }
+
+      div#bodyfooter div.controlpanel {
+        text-align: center;
+        padding:5px;
+        font-size:18pt;
+      }
+
+      div#bodyfooter div.playchar button {
+        font-size:16pt;
+        padding:5px;
+        margin-top:15px;
+      }
+
+      div#bodyfooter div.controlbutton {
+        width:180px;
+        height:56px;
+        padding:5px;
+        font-size:16pt;
+
+        border:1px solid #333399;
+        background-color:#DDD;
+        padding-top:5px;
+      }
+      #renderarea {
+        width:800px;
+        height:600px;
+      }
+      .canvas {
+        border:1px solid #000000;
+      }
+      div#renderarea {
+        position:relative;
+        border:1px solid #000000;
+      }
+      div#renderarea canvas {
+        position:absolute;
+        top:0px;
+        bottom:0px;
+        left:0px;
+        right:0px;
+        border:1px solid #990000;
+      }
+
+      div#loadingtext {
+        top:250px;
+        left:100px;
+        position:absolute;
+        font-size:34px;
+        color:#999999;
+      }
+    </style>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://code.jquery.com/jquery-1.11.1.js"></script>
+    <script src="setup.js"></script>
+    <script src="/apps/adventuregame/game/static/setup.js"></script>
+<!--
+    <script src="bindio.js"></script>
+    <script src="/apps/adventuregame/static/bindio.js"></script>
+    <script src="/apps/adventuregame/static/game_engine/jquery-3.3.1.min.js"></script>
+    <script src="/apps/adventuregame/static/engine.js"></script>
+// -->
+
+
+  </head>
+  <body>
+    <div id="bodytop">
+    </div>
+    <div id="bodycenter">
+      <div id="renderarea">
+    	</div>
+
+      <div id='loadingtext'>
+        Loading
+      </div>
+    </div>
+    <div id="bodyfooter">
+    </div>
+
+<!-- <script src="https://cdn.socket.io/socket.io-1.2.0.js"></script>
+<script src="http://code.jquery.com/jquery-1.11.1.js"></script>
+// -->
+<script>
+var myname = '';
+var myroom = '';
+
+var scrolltobot = true;
+var appname = 'adventuregame';
+var appspace = appname+'-';
+
+
+var webpath = window.location.href;
+var engineMode = getEngineType(webpath);
+$(document).ready(function(){
+  var engineMode = getEngineType(webpath);
+  if(typeof io === "undefined" || io == null) {
+    if(engineMode === "node" || engineMode === "node web browser")      return;
+  }
+
+
+
+  $('div#messagefield').scroll(function(){
+    var div = $(this);
+    var divbit = $('div#messagepanel div#scrollbit');
+
+    if( (div[0].scrollHeight-div.scrollTop()-45) <= div.height() ) {
+      scrolltobot = true;
+      if(divbit.hasClass('scrolled'))   divbit.removeClass('scrolled');
+    }
+    else {
+      scrolltobot = false;
+      if(!divbit.hasClass('scrolled'))   divbit.addClass('scrolled');
+    }
+  });
+  var botControlsDiv = $('div#bodyfooter');
+  var textstr = '<div class="controlpanel">';
+    textstr += '</div>';
+  botControlsDiv.append(textstr);
+
+
+
+  console.log("engine test");
+  if(typeof io === "object") {
+      var socket = io();
+
+      socket.on(appspace+'charinfo-return', function(msg){
+          console.log("Info Received");
+          console.log(msg);
+
+
+          var clearCharPanel = function() {
+              $('div#displaypanel').empty();
+          };
+          var createCharDataPanel = function(chardata,paneldata) {
+            var textstr = '<div class="chardatapanel">';
+                textstr += '<div class="namechar"><h2>';
+                textstr += chardata.data.charname;
+                textstr += '</h2></div>';
+                textstr += '<div class="panelbody">';
+                textstr += '</div>';
+                textstr += '<div class="panelfooter">';
+                textstr += '</div>';
+
+            textstr += '</div>';
+            return textstr;
+          };
+          clearCharPanel();
+
+          var charDisplayDiv = $('div#bodycenter');
+          var divstr = createCharDataPanel({'type':"char","data":msg.char},{});
+          if(divstr != null)           charDisplayDiv.append( divstr );
+      });
+      socket.on(appspace+'redirect_signin', function(msg){
+          window.location.href = "/login";
+      }.bind(this));
+      socket.on(appspace+'heartbeat', function(msg){
+          socket.emit(appspace+'heartbeat', {} );
+      }.bind(this));
+      socket.on(appspace+'game-zonedata-return', function(msg){
+          console.log("game zonedata received!");
+          console.log(msg);
+      }.bind(this));
+      socket.on(appspace+'game-starting-begin', function(msg){
+          console.log("game start received!");
+          console.log(msg);
+      }.bind(this));
+
+
+      socket.emit(appspace+'connection',{});
+      socket.emit(appspace+'game-starting-request',{});
+  }
+
+
+  if( /\belectron\b/.test(getEngineType(window.location.href)) ) {
+    // "var GameEngine" breaks namespace for asyncBrowserLoad's GameEngine.init().  What.  The.  Feck?
+      GameEngine = require('./public/engine.js');
+      path = "public/";
+      GameEngine.init(path,engineMode);
+  }
+  if( /web\s*browser\s*$/.test(getEngineType(window.location.href)) ) {
+      //      http://jqfundamentals.com/chapter/jquery-basics
+      var path = window.location.href;
+      path = (path.match(/^(.*[\/\\])\s*/mg)).pop();
+
+      path = path.split("/");
+      var bit = path.pop();
+
+      if( /file\s*[^;]*\bbrowser\s*$/.test(getEngineType(window.location.href)) ) {
+          if(bit != "")  path.push(bit);
+      }
+      else if(engineMode === "node web browser") {
+        path.push("static");
+      }
+
+      path = path.join("/");
+
+      asyncBrowserLoad(path+"/game_engine/jquery-3.3.1.min.js",{"defer":true},function(_o,_e) {
+          asyncBrowserLoad(path+"/engine.js", {"defer":true}, function(_o2, _e2) {
+              asyncBrowserLoad(path+"/game_engine/ex_js2/engine_startup_list.js", {"defer":true}, function(_o3, _e3) {
+                  GameEngine.init(path,engineMode);
+              }.bind(this));
+          }.bind(this));
+      }.bind(this));
+  }
+
+});
+
+  </script>
+    </body>
+  </html>
